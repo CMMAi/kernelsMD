@@ -10,7 +10,7 @@ Please see input script:
 
 fix ID group-ID TransientResponseOMP group-ID_of_virtual_atoms spring-constant/mass 0 0 0 1 mode
 
-# Citation
+# Publication / Citation
 
 If you find this code useful please cite us in your work:
 
