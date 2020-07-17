@@ -1,0 +1,104 @@
+dimension	3
+boundary	s s s
+newton		on
+
+units           metal
+atom_style	bond
+neighbor	0.1 bin
+neigh_modify	every 1 delay 5 check yes
+#neighbor 	0.1 nsq
+#neigh_modify    once yes
+
+variable	width equal 2.5
+variable	depth equal 20
+variable	min equal -${depth}+1
+variable	max equal ${depth}-1
+
+variable	l equal 7.07106
+
+variable	freq equal 1
+variable	mas equal 1
+variable	speed equal sqrt(${freq}/${mas})
+variable	sourceL equal 0.005*(cos(PI*(0.5+2*v_speed*dt*step)))
+variable        sourceR equal -0.005*(cos(PI*(0.5+3.2*v_speed*dt*step)))
+
+variable	k equal 0.01
+variable	k_mass equal $k*2*9648.503525
+
+lattice		fcc $l
+region		box block -${width} ${width} -${width} ${width} -${depth} ${depth}
+create_box	4 box bond/types 1 extra/bond/per/atom 24
+
+variable	d_half equal ${depth}/2
+
+# create nanowire
+lattice		fcc $l orient x 1 1 -2 orient y -1 1 0 orient z 1 1 1 
+region		n1 cylinder z 0 0 1.7 EDGE -${d_half}
+create_atoms	1 region n1
+
+lattice         fcc $l orient x 1 1 2 orient y -1 1 0 orient z -1 -1 1 
+region		n2 cylinder z 0 0 1.7 EDGE EDGE
+create_atoms    2 region n2
+
+lattice         fcc $l orient x 1 1 -2 orient y -1 1 0 orient z 1 1 1 
+region          n3 cylinder z 0 0 1.7 0 ${d_half}
+create_atoms    3 region n3
+
+lattice		fcc $l orient x 1 0 0 orient y 0 1 0 orient z 0 0 1 
+
+group           n1 type 1
+group           n2 type 2
+group		n3 type 3
+# group		n4 type 4
+
+mass		* ${mas}
+timestep        0.01
+
+pair_style      zero 5.1 nocoeff
+pair_coeff      * *
+
+delete_atoms    overlap 4.9 n2 n1
+delete_atoms    overlap 4.9 n2 n3
+
+bond_style      harmonic
+bond_coeff      1 $k 5
+
+write_data	topo.data
+
+reset_timestep  0
+
+region		3 block INF INF INF INF ${max} INF
+group		Lfixed region 3
+
+region          4 block INF INF INF INF INF ${min}
+group           Rfixed region 4
+
+region		Vregion block INF INF INF INF -2.5 2.5
+group		Vgroup region Vregion 
+
+#delete_atoms	porosity Vregion 0.2 55688 bond no
+delete_atoms	porosity box 0.1 55688 bond no
+
+#delete_atoms	group vr
+run_style       verlet
+compute         thermoke all ke
+compute         thermope all pe
+compute         perKe all ke/atom
+compute         perPe all pe/atom
+
+dump		1 all custom 1 pos.dump id type x y z vx vy vz fx fy fz c_perKe c_perPe
+
+#fix		NVE all nve
+fix             VR all TransientResponseOMP Vgroup ${k_mass} 0 0 0 1 a
+
+create_bonds    many all all 1 4.9 5.1
+fix		3 Lfixed move variable NULL NULL v_sourceL NULL NULL NULL
+#fix		4 Rfixed move variable NULL NULL v_sourceR NULL NULL NULL 
+
+thermo_style    custom step time temp ke pe
+
+thermo		100
+run             100
+unfix           3
+#unfix		4
+run		700
