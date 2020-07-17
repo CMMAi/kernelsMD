@@ -6,7 +6,9 @@
 
 # Usage:
 
-Please read input script
+Please see input script:
+
+fix ID group-ID TransientResponseOMP group-ID_of_virtual_atoms spring-constant/mass 0 0 0 1 mode
 
 # Citation
 
