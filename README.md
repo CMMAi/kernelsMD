@@ -1,3 +1,13 @@
+# Installation:
+
+1. cp USER-DCS your_lammps_directory/src
+2. cd USER-DCS
+3. ./Install.sh 1 1
+
+# Usage:
+
+Please read input script
+
 # Citation
 
 If you find this code useful please cite us in your work:
